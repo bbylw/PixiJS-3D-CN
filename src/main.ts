@@ -1,9 +1,24 @@
 import "./style.css";
-import { FEATURES, FAQ_ITEMS, HOW_IT_WORKS, SETUP_COMMANDS, TSCONFIG_CODE, USAGE_CODE } from "./data";
+import {
+  FEATURES,
+  FAQ_ITEMS,
+  HOW_IT_WORKS,
+  SETUP_COMMANDS,
+  TSCONFIG_CODE,
+  USAGE_CODE,
+  USAGE_HYBRID_CODE,
+} from "./data";
+import { highlightCodeLines, renderHighlightedCode } from "./highlight";
 import { icons } from "./icons";
-import { type HeroSceneController, mountHeroPixi3D } from "./pixi-hero";
+import {
+  type HeroGeometryKind,
+  type HeroMaterialKind,
+  type HeroSceneController,
+  mountHeroPixi3D,
+} from "./pixi-hero";
 
 type PkgManager = keyof typeof SETUP_COMMANDS;
+type UsageMode = "basic" | "hybrid";
 
 const NAV_LINKS = [
   { href: "#features", label: "核心特性" },
@@ -11,6 +26,19 @@ const NAV_LINKS = [
   { href: "#usage", label: "代码示例" },
   { href: "#typescript", label: "TypeScript" },
   { href: "#faq", label: "常见问题" },
+];
+
+const GEOMETRY_OPTIONS: { id: HeroGeometryKind; label: string }[] = [
+  { id: "cube", label: "立方体" },
+  { id: "knot", label: "扭结" },
+  { id: "icosahedron", label: "多面体" },
+  { id: "sphere", label: "球体" },
+];
+
+const MATERIAL_OPTIONS: { id: HeroMaterialKind; label: string }[] = [
+  { id: "pbr", label: "PBR" },
+  { id: "phong", label: "Phong" },
+  { id: "toon", label: "Toon" },
 ];
 
 const CUBE_COLORS = [
@@ -54,11 +82,11 @@ appRoot.innerHTML = `
     </a>
   </div>
 
-  <!-- Floating compact header & navigation -->
+  <!-- Floating compact header & navigation (sized to content on desktop) -->
   <header class="fixed inset-x-0 top-4 z-40 flex justify-center px-4">
     <nav
       aria-label="主导航"
-      class="flex w-full max-w-4xl items-center justify-between gap-4 rounded-2xl border border-[#272727] bg-[#181818]/85 px-4 py-2 backdrop-blur-md"
+      class="flex w-full items-center justify-between gap-4 rounded-2xl border border-[#272727] bg-[#181818]/85 px-4 py-2 backdrop-blur-md md:w-auto"
     >
       <a href="#hero" class="flex items-center gap-2 rounded-lg text-sm font-semibold text-white transition-opacity duration-300 hover:opacity-85">
         <span class="flex size-8 items-center justify-center rounded-lg border border-[#313131] bg-[#1F1F1F] text-[#E72264]">
@@ -100,7 +128,7 @@ appRoot.innerHTML = `
           aria-label="打开导航菜单"
           class="inline-flex size-10 items-center justify-center rounded-lg border border-[#272727] bg-[#1F1F1F] text-white transition-colors duration-300 hover:bg-[#272727] md:hidden"
         >
-          <span class="flex flex-col gap-1.5" aria-hidden="true">
+          <span class="flex flex-col gap-1" aria-hidden="true">
             <span id="burger-line-1" class="block h-0.5 w-5 bg-current transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"></span>
             <span id="burger-line-2" class="block h-0.5 w-5 bg-current transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"></span>
           </span>
@@ -144,7 +172,7 @@ appRoot.innerHTML = `
 
   <main id="main-content" tabindex="-1" class="pt-24">
     <!-- Hero Section -->
-    <section id="hero" class="mx-auto max-w-6xl px-4 pt-8 pb-16 md:px-8 md:pt-12 md:pb-24">
+    <section id="hero" class="scroll-mt-24 mx-auto max-w-6xl px-4 pt-8 pb-16 md:px-8 md:pt-12 md:pb-24">
       <div class="grid items-center gap-12 lg:grid-cols-12">
         <div class="lg:col-span-6">
           <div class="inline-flex flex-wrap items-center gap-2 rounded-full border border-[#272727] bg-[#181818] px-3 py-1 text-xs font-medium text-[#D4D4D4]">
@@ -161,7 +189,7 @@ appRoot.innerHTML = `
           </h1>
 
           <p class="mt-6 max-w-[680px] text-base leading-relaxed text-[#A3A3A3] sm:text-lg">
-            将 <code class="rounded bg-[#1F1F1F] px-1.5 py-0.5 text-sm text-[#F5F5F5]">View3D</code> 像精灵一样直接添加到舞台，原生支持 WebGL2 与 WebGPU 双渲染器，为你的交互作品与游戏引入 PBR 材质、光照阴影、glTF 压缩模型与 3D 指针事件。
+            将 <code class="rounded bg-[#1F1F1F] px-2 py-0.5 text-sm text-[#F5F5F5]">View3D</code> 像精灵一样直接添加到舞台，原生支持 WebGL2 与 WebGPU 双渲染器，为你的交互作品与游戏引入 PBR 材质、光照阴影、glTF 压缩模型与 3D 指针事件。
           </p>
 
           <div class="mt-8 flex flex-wrap items-center gap-4">
@@ -176,7 +204,7 @@ appRoot.innerHTML = `
               href="https://github.com/pixijs/3d"
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-[#D4D4D4] transition-colors duration-300 hover:text-white"
+              class="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-[#D4D4D4] transition-colors duration-300 hover:text-white"
             >
               <span>GitHub 仓库</span>
               ${icons.arrowUpRight}
@@ -197,51 +225,108 @@ appRoot.innerHTML = `
               <div id="hero-canvas-host" class="absolute inset-0 h-full w-full"></div>
 
               <!-- Renderer badge -->
-              <div class="pointer-events-none absolute top-3 left-3 flex items-center gap-2 rounded-lg border border-[#272727] bg-[#181818]/90 px-2.5 py-1 text-xs font-medium text-[#F5F5F5] backdrop-blur-sm">
+              <div class="pointer-events-none absolute top-3 left-3 flex items-center gap-2 rounded-lg border border-[#272727] bg-[#181818]/90 px-3 py-1 text-xs font-medium text-[#F5F5F5] backdrop-blur-sm">
                 <span id="renderer-dot" class="size-2 rounded-full bg-[#4ade80]" aria-hidden="true"></span>
                 <span id="renderer-label">检测渲染器中…</span>
               </div>
 
+              <!-- 3D Pointer tap indicator -->
+              <div id="mesh-tap-badge" class="pointer-events-none absolute top-3 right-3 rounded-lg border border-[#272727] bg-[#181818]/90 px-3 py-1 text-xs text-[#D4D4D4] backdrop-blur-sm">
+                点击 3D 网格试试
+              </div>
+
               <!-- Orbit hint -->
-              <div class="pointer-events-none absolute bottom-3 left-3 rounded-lg border border-[#272727] bg-[#181818]/85 px-2.5 py-1 text-xs text-[#A3A3A3] backdrop-blur-sm">
-                拖拽画布可环绕观察 · 滚轮缩放
+              <div class="pointer-events-none absolute bottom-3 left-3 rounded-lg border border-[#272727] bg-[#181818]/85 px-3 py-1 text-xs text-[#A3A3A3] backdrop-blur-sm">
+                拖拽环绕 · 滚轮缩放 · 实时阴影
               </div>
             </div>
 
             <!-- Interactive Controls Bar -->
-            <div class="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[#1F1F1F] px-3 py-2">
-              <div class="flex items-center gap-2">
-                <button
-                  id="toggle-spin-btn"
-                  type="button"
-                  class="btn btn-sm border-[#313131] bg-[#272727] text-xs font-semibold text-white hover:bg-[#313131]"
-                >
-                  ${icons.pause}
-                  <span>暂停旋转</span>
-                </button>
-                <button
-                  id="reset-camera-btn"
-                  type="button"
-                  class="btn btn-sm border-[#313131] bg-[#181818] text-xs font-medium text-[#D4D4D4] hover:bg-[#272727] hover:text-white"
-                >
-                  重置视角
-                </button>
+            <div class="mt-2 space-y-2 rounded-lg border border-[#272727] bg-[#1F1F1F] p-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <!-- Geometry Switcher -->
+                <div class="flex flex-wrap items-center gap-1" role="group" aria-label="切换 3D 几何体">
+                  ${GEOMETRY_OPTIONS.map(
+                    (g, idx) => `
+                    <button
+                      type="button"
+                      data-hero-geom="${g.id}"
+                      aria-pressed="${idx === 0 ? "true" : "false"}"
+                      class="rounded-md px-2 py-1 text-xs font-medium transition-colors duration-300 ${
+                        idx === 0
+                          ? "bg-[#E72264] text-white"
+                          : "bg-[#272727] text-[#A3A3A3] hover:text-white"
+                      }"
+                    >
+                      ${g.label}
+                    </button>
+                  `,
+                  ).join("")}
+                </div>
+
+                <!-- Material Switcher -->
+                <div class="flex items-center gap-1" role="group" aria-label="切换材质管线">
+                  ${MATERIAL_OPTIONS.map(
+                    (m, idx) => `
+                    <button
+                      type="button"
+                      data-hero-mat="${m.id}"
+                      aria-pressed="${idx === 0 ? "true" : "false"}"
+                      class="rounded-md px-2 py-1 font-mono text-xs font-medium transition-colors duration-300 ${
+                        idx === 0
+                          ? "bg-[#313131] text-white"
+                          : "bg-[#181818] text-[#A3A3A3] hover:text-white"
+                      }"
+                    >
+                      ${m.label}
+                    </button>
+                  `,
+                  ).join("")}
+                </div>
               </div>
 
-              <div class="flex items-center gap-2" role="group" aria-label="切换立方体材质颜色">
-                ${CUBE_COLORS.map(
-                  (c, idx) => `
+              <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <div class="flex flex-wrap items-center gap-2">
                   <button
+                    id="toggle-spin-btn"
                     type="button"
-                    data-cube-color="${c.hex}"
-                    aria-label="切换材质颜色为${c.name}"
-                    class="size-6 rounded-full border-2 transition-transform duration-300 hover:scale-110 active:scale-95 ${
-                      idx === 0 ? "border-white" : "border-[#313131]"
-                    }"
-                    style="background-color: ${c.css}"
-                  ></button>
-                `,
-                ).join("")}
+                    class="btn btn-xs border-[#313131] bg-[#272727] font-semibold text-white hover:bg-[#313131]"
+                  >
+                    ${icons.pause}
+                    <span>暂停旋转</span>
+                  </button>
+                  <button
+                    id="toggle-hud-btn"
+                    type="button"
+                    aria-pressed="true"
+                    class="btn btn-xs border-[#313131] bg-[#272727] font-medium text-white hover:bg-[#313131]"
+                  >
+                    2D 锚点
+                  </button>
+                  <button
+                    id="reset-camera-btn"
+                    type="button"
+                    class="btn btn-xs border-[#313131] bg-[#181818] font-medium text-[#D4D4D4] hover:bg-[#272727] hover:text-white"
+                  >
+                    重置视角
+                  </button>
+                </div>
+
+                <div class="flex items-center gap-2" role="group" aria-label="切换材质颜色">
+                  ${CUBE_COLORS.map(
+                    (c, idx) => `
+                    <button
+                      type="button"
+                      data-cube-color="${c.hex}"
+                      aria-label="切换材质颜色为${c.name}"
+                      class="size-6 rounded-full border-2 transition-transform duration-300 hover:scale-110 active:scale-95 ${
+                        idx === 0 ? "border-white" : "border-[#313131]"
+                      }"
+                      style="background-color: ${c.css}"
+                    ></button>
+                  `,
+                  ).join("")}
+                </div>
               </div>
             </div>
           </div>
@@ -250,7 +335,7 @@ appRoot.innerHTML = `
     </section>
 
     <!-- Features Section -->
-    <section id="features" class="reveal-section mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
+    <section id="features" class="reveal-section scroll-mt-24 mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
       <div class="max-w-2xl">
         <p class="font-mono text-xs font-semibold tracking-wider text-[#E72264] uppercase">Core Capabilities</p>
         <h2 class="mt-2 text-3xl font-bold text-white sm:text-4xl">完整现代 3D 渲染能力，沿用 PixiJS 研发直觉</h2>
@@ -289,13 +374,13 @@ appRoot.innerHTML = `
     </section>
 
     <!-- Setup Section -->
-    <section id="setup" class="reveal-section mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
+    <section id="setup" class="reveal-section scroll-mt-24 mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
       <div class="grid gap-12 lg:grid-cols-12 lg:items-start">
         <div class="lg:col-span-5">
           <p class="font-mono text-xs font-semibold tracking-wider text-[#E72264] uppercase">Setup</p>
           <h2 class="mt-2 text-3xl font-bold text-white sm:text-4xl">一条命令即可快速上手</h2>
           <p class="mt-4 text-base leading-relaxed text-[#A3A3A3]">
-            使用官方 <a href="https://pixijs.io/create-pixi/" target="_blank" rel="noopener noreferrer" class="text-white underline decoration-[#313131] underline-offset-4 hover:decoration-[#E72264]">PixiJS Create</a> 脚手架创建新项目，或直接将 <code class="rounded bg-[#1F1F1F] px-1.5 py-0.5 text-sm text-white">@pixi/3d</code> 安装至现有工程。
+            使用官方 <a href="https://pixijs.io/create-pixi/" target="_blank" rel="noopener noreferrer" class="text-white underline decoration-[#313131] underline-offset-4 hover:decoration-[#E72264]">PixiJS Create</a> 脚手架创建新项目，或直接将 <code class="rounded bg-[#1F1F1F] px-2 py-0.5 text-sm text-white">@pixi/3d</code> 安装至现有工程。
           </p>
           <div class="mt-6 rounded-xl border border-[#272727] bg-[#181818] p-4">
             <p class="text-sm font-semibold text-white">版本与 CDN 说明</p>
@@ -315,7 +400,7 @@ appRoot.innerHTML = `
 
         <div class="lg:col-span-7">
           <div class="rounded-2xl border border-[#272727] bg-[#181818] p-6">
-            <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[#272727] pb-4">
+            <div class="flex flex-wrap items-center justify-between gap-4 pb-4">
               <div role="tablist" aria-label="选择包管理器" class="tabs tabs-box bg-[#1F1F1F] p-1">
                 <button type="button" role="tab" aria-selected="true" data-pm="bun" class="tab tab-active font-mono text-xs font-semibold">bun</button>
                 <button type="button" role="tab" aria-selected="false" data-pm="npm" class="tab font-mono text-xs font-semibold">npm</button>
@@ -324,7 +409,7 @@ appRoot.innerHTML = `
               <span class="font-mono text-xs text-[#A3A3A3]">推荐 PixiJS 8.23.0+</span>
             </div>
 
-            <div class="mt-6 space-y-4">
+            <div class="space-y-4">
               <div>
                 <div class="mb-2 flex items-center justify-between">
                   <span class="text-sm font-medium text-[#D4D4D4]">创建全新 PixiJS 项目</span>
@@ -365,12 +450,12 @@ appRoot.innerHTML = `
     </section>
 
     <!-- How it works + Usage Code Section -->
-    <section id="usage" class="reveal-section mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
+    <section id="usage" class="reveal-section scroll-mt-24 mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
       <div class="max-w-2xl">
         <p class="font-mono text-xs font-semibold tracking-wider text-[#E72264] uppercase">Usage</p>
         <h2 class="mt-2 text-3xl font-bold text-white sm:text-4xl">三步构建你的第一个 3D 场景</h2>
         <p class="mt-4 text-base text-[#A3A3A3]">
-          下方代码即首页顶部实时演示的完整源码，也可对照仓库中的
+          点击下方任一步骤卡片可定位对应代码行，也可对照仓库中的
           <a
             href="https://github.com/pixijs/3d/blob/main/src/__docs__/getting-started/quick-start.md"
             target="_blank"
@@ -390,25 +475,37 @@ appRoot.innerHTML = `
 
       <div class="mt-10 grid gap-4 md:grid-cols-3">
         ${HOW_IT_WORKS.map(
-          (item) => `
-          <div class="rounded-2xl border border-[#272727] bg-[#181818] p-6">
-            <div class="flex items-center justify-between">
+          (item, index) => `
+          <button
+            type="button"
+            data-step-index="${index}"
+            aria-pressed="false"
+            class="step-card cursor-pointer rounded-2xl border border-[#272727] bg-[#181818] p-6 text-left transition-colors duration-300 hover:border-[#313131] hover:bg-[#1F1F1F]"
+          >
+            <div class="flex items-center justify-between gap-2">
               <span class="font-mono text-sm font-semibold text-[#E72264]">STEP ${item.step}</span>
               <code class="rounded bg-[#272727] px-2 py-0.5 text-xs text-[#D4D4D4]">${item.api}</code>
             </div>
             <h3 class="mt-4 text-lg font-semibold text-white">${item.title}</h3>
             <p class="mt-2 text-sm leading-relaxed text-[#A3A3A3]">${item.description}</p>
-          </div>
+          </button>
         `,
         ).join("")}
       </div>
 
       <div class="mt-8 rounded-2xl border border-[#272727] bg-[#181818] p-4 sm:p-6">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <div class="flex items-center gap-2 text-sm font-medium text-[#D4D4D4]">
-            ${icons.code}
-            <span class="font-mono">src/main.ts</span>
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2 text-sm font-medium text-[#D4D4D4]">
+              ${icons.code}
+              <span class="font-mono">src/main.ts</span>
+            </div>
+            <div role="tablist" aria-label="选择示例模式" class="tabs tabs-box bg-[#1F1F1F] p-1">
+              <button type="button" role="tab" aria-selected="true" data-usage-mode="basic" class="tab tab-active text-xs font-medium">README 原版示例</button>
+              <button type="button" role="tab" aria-selected="false" data-usage-mode="hybrid" class="tab text-xs font-medium">阴影 + 2D 锚点进阶</button>
+            </div>
           </div>
+
           <button
             type="button"
             data-copy-target="usage-code-block"
@@ -418,12 +515,12 @@ appRoot.innerHTML = `
             <span>复制完整示例</span>
           </button>
         </div>
-        <pre class="overflow-x-auto rounded-lg border border-[#272727] bg-[#000000] p-4 text-xs leading-relaxed text-[#E5E5E5] sm:text-sm"><code id="usage-code-block"></code></pre>
+        <pre class="overflow-x-auto rounded-lg border border-[#272727] bg-[#000000] p-4 text-xs leading-relaxed sm:text-sm"><code id="usage-code-block"></code></pre>
       </div>
     </section>
 
     <!-- TypeScript Section -->
-    <section id="typescript" class="reveal-section mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
+    <section id="typescript" class="reveal-section scroll-mt-24 mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
       <div class="max-w-2xl">
         <p class="font-mono text-xs font-semibold tracking-wider text-[#E72264] uppercase">TypeScript</p>
         <h2 class="mt-2 text-3xl font-bold text-white sm:text-4xl">开箱即用的类型声明与版本适配</h2>
@@ -471,14 +568,14 @@ appRoot.innerHTML = `
             <div class="mockup-code border border-[#272727] bg-[#000000] text-xs">
               <pre data-prefix="$"><code id="cmd-types" class="text-[#F5F5F5]">${SETUP_COMMANDS.bun.types}</code></pre>
             </div>
-            <pre class="overflow-x-auto rounded-lg border border-[#272727] bg-[#000000] p-3 text-xs text-[#E5E5E5]"><code id="tsconfig-block"></code></pre>
+            <pre class="overflow-x-auto rounded-lg border border-[#272727] bg-[#000000] p-3 text-xs"><code id="tsconfig-block"></code></pre>
           </div>
         </div>
       </div>
     </section>
 
     <!-- FAQ Section -->
-    <section id="faq" class="reveal-section mx-auto max-w-4xl px-4 py-16 md:px-8 md:py-24">
+    <section id="faq" class="reveal-section scroll-mt-24 mx-auto max-w-4xl px-4 py-16 md:px-8 md:py-24">
       <div class="text-center">
         <p class="font-mono text-xs font-semibold tracking-wider text-[#E72264] uppercase">FAQ</p>
         <h2 id="faq-heading" class="mt-2 text-3xl font-bold text-white sm:text-4xl">常见问题解答</h2>
@@ -490,7 +587,7 @@ appRoot.innerHTML = `
           (item, index) => `
           <details ${index === 0 ? "open" : ""}>
             <summary>${item.question}</summary>
-            <div class="px-6 pb-5 text-sm leading-relaxed text-[#A3A3A3]">
+            <div class="px-6 pb-4 text-sm leading-relaxed text-[#A3A3A3]">
               ${item.answer}
             </div>
           </details>
@@ -500,7 +597,7 @@ appRoot.innerHTML = `
     </section>
 
     <!-- Community & Sponsors Section -->
-    <section id="community" class="reveal-section mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
+    <section id="community" class="reveal-section scroll-mt-24 mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
       <div class="rounded-2xl border border-[#272727] bg-[#181818] p-6 sm:p-10">
         <div class="grid gap-8 lg:grid-cols-12 lg:items-center">
           <div class="lg:col-span-7">
@@ -579,31 +676,34 @@ appRoot.innerHTML = `
   </main>
 
   <!-- Footer -->
-  <footer class="border-t border-[#272727] bg-[#000000]">
-    <div class="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-4 py-10 sm:flex-row sm:items-center md:px-8">
-      <div class="flex items-center gap-2 text-sm font-semibold text-white">
-        <span class="text-[#E72264]">${icons.cube}</span>
-        <span>PixiJS 3D</span>
-      </div>
+  <footer class="bg-[#000000]">
+    <div class="mx-auto max-w-6xl px-4 md:px-8">
+      <div class="h-px w-full bg-[#272727]" aria-hidden="true"></div>
+      <div class="flex flex-col items-start justify-between gap-6 py-10 sm:flex-row sm:items-center">
+        <div class="flex items-center gap-2 text-sm font-semibold text-white">
+          <span class="text-[#E72264]">${icons.cube}</span>
+          <span>PixiJS 3D</span>
+        </div>
 
-      <div class="flex flex-wrap items-center gap-4 text-xs text-[#A3A3A3]">
-        <a href="https://www.npmjs.com/package/@pixi/3d" target="_blank" rel="noopener noreferrer" class="hover:text-white">npm @pixi/3d</a>
-        <a href="https://github.com/pixijs/3d/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" class="hover:text-white">MIT 协议</a>
-        <button type="button" data-open-dialog="privacy-dialog" class="cursor-pointer hover:text-white">隐私说明</button>
-        <button type="button" data-open-dialog="terms-dialog" class="cursor-pointer hover:text-white">使用条款</button>
+        <div class="flex flex-wrap items-center gap-4 text-xs text-[#A3A3A3]">
+          <a href="https://www.npmjs.com/package/@pixi/3d" target="_blank" rel="noopener noreferrer" class="hover:text-white">npm @pixi/3d</a>
+          <a href="https://github.com/pixijs/3d/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" class="hover:text-white">MIT 协议</a>
+          <button type="button" data-open-dialog="privacy-dialog" class="cursor-pointer hover:text-white">隐私说明</button>
+          <button type="button" data-open-dialog="terms-dialog" class="cursor-pointer hover:text-white">使用条款</button>
+        </div>
       </div>
     </div>
   </footer>
 
   <!-- Native <dialog> modals for Legal Links -->
   <dialog id="privacy-dialog" class="legal-dialog m-auto max-w-lg rounded-2xl border border-[#272727] bg-[#181818] p-6 text-[#F5F5F5]">
-    <div class="flex items-center justify-between border-b border-[#272727] pb-3">
+    <div class="flex items-center justify-between pb-3">
       <h2 class="text-lg font-semibold text-white">隐私说明</h2>
       <button type="button" data-close-dialog="privacy-dialog" aria-label="关闭隐私说明" class="btn btn-ghost btn-sm text-[#A3A3A3] hover:text-white">
         ${icons.xClose}
       </button>
     </div>
-    <p class="mt-4 text-sm leading-relaxed text-[#A3A3A3]">
+    <p class="mt-2 text-sm leading-relaxed text-[#A3A3A3]">
       本站为 PixiJS 3D (@pixi/3d) 的开源技术文档与实时演示站点，完全在浏览器本地运行，不收集任何个人身份信息、表单数据或追踪 Cookie。
     </p>
     <div class="mt-6 flex justify-end">
@@ -614,13 +714,13 @@ appRoot.innerHTML = `
   </dialog>
 
   <dialog id="terms-dialog" class="legal-dialog m-auto max-w-lg rounded-2xl border border-[#272727] bg-[#181818] p-6 text-[#F5F5F5]">
-    <div class="flex items-center justify-between border-b border-[#272727] pb-3">
+    <div class="flex items-center justify-between pb-3">
       <h2 class="text-lg font-semibold text-white">使用条款</h2>
       <button type="button" data-close-dialog="terms-dialog" aria-label="关闭使用条款" class="btn btn-ghost btn-sm text-[#A3A3A3] hover:text-white">
         ${icons.xClose}
       </button>
     </div>
-    <p class="mt-4 text-sm leading-relaxed text-[#A3A3A3]">
+    <p class="mt-2 text-sm leading-relaxed text-[#A3A3A3]">
       页面内所有 API 示例与核心特性说明均整理自 PixiJS 3D 官方仓库，示例代码与 @pixi/3d 库本身遵循 MIT 开源协议，可自由用于学习与商业项目。
     </p>
     <div class="mt-6 flex justify-end">
@@ -634,23 +734,92 @@ appRoot.innerHTML = `
   <div id="copy-live-region" class="visually-hidden" aria-live="polite"></div>
 `;
 
-// Populate code blocks safely via textContent
+// Render syntax-highlighted code blocks
 const usageCodeEl = document.getElementById("usage-code-block");
-if (usageCodeEl) usageCodeEl.textContent = USAGE_CODE;
-
 const tsconfigEl = document.getElementById("tsconfig-block");
-if (tsconfigEl) tsconfigEl.textContent = TSCONFIG_CODE;
+let currentUsageMode: UsageMode = "basic";
+let activeStepIndex: number | null = null;
+
+function renderUsageCode(mode: UsageMode) {
+  if (!usageCodeEl) return;
+  currentUsageMode = mode;
+  renderHighlightedCode(usageCodeEl, mode === "basic" ? USAGE_CODE : USAGE_HYBRID_CODE, "ts");
+  if (mode === "basic" && activeStepIndex !== null) {
+    highlightCodeLines(usageCodeEl, HOW_IT_WORKS[activeStepIndex].lines);
+  } else {
+    highlightCodeLines(usageCodeEl, null);
+  }
+}
+
+renderUsageCode("basic");
+if (tsconfigEl) renderHighlightedCode(tsconfigEl, TSCONFIG_CODE, "json");
+
+// Usage code mode tabs & interactive step highlighting
+const usageModeTabs = document.querySelectorAll<HTMLButtonElement>("[data-usage-mode]");
+const stepCards = document.querySelectorAll<HTMLButtonElement>("[data-step-index]");
+
+function syncStepCardsUI() {
+  stepCards.forEach((card) => {
+    const idx = Number(card.dataset.stepIndex);
+    const active = idx === activeStepIndex;
+    card.setAttribute("aria-pressed", String(active));
+    card.classList.toggle("border-[#E72264]", active);
+    card.classList.toggle("bg-[#1F1F1F]", active);
+    card.classList.toggle("border-[#272727]", !active);
+  });
+}
+
+usageModeTabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    const mode = tab.dataset.usageMode as UsageMode;
+    usageModeTabs.forEach((t) => {
+      const active = t === tab;
+      t.classList.toggle("tab-active", active);
+      t.setAttribute("aria-selected", String(active));
+    });
+    if (mode === "hybrid") {
+      activeStepIndex = null;
+      syncStepCardsUI();
+    }
+    renderUsageCode(mode);
+  });
+});
+
+stepCards.forEach((card) => {
+  card.addEventListener("click", () => {
+    const idx = Number(card.dataset.stepIndex);
+    activeStepIndex = activeStepIndex === idx ? null : idx;
+    syncStepCardsUI();
+
+    if (currentUsageMode !== "basic") {
+      usageModeTabs.forEach((t) => {
+        const isBasic = t.dataset.usageMode === "basic";
+        t.classList.toggle("tab-active", isBasic);
+        t.setAttribute("aria-selected", String(isBasic));
+      });
+      renderUsageCode("basic");
+    } else if (usageCodeEl) {
+      highlightCodeLines(
+        usageCodeEl,
+        activeStepIndex !== null ? HOW_IT_WORKS[activeStepIndex].lines : null,
+      );
+    }
+  });
+});
 
 // Mount live @pixi/3d Hero Scene
 const canvasHost = document.getElementById("hero-canvas-host");
 const canvasSkeleton = document.getElementById("hero-canvas-skeleton");
 const rendererLabel = document.getElementById("renderer-label");
 const rendererDot = document.getElementById("renderer-dot");
+const meshTapBadge = document.getElementById("mesh-tap-badge");
 const toggleSpinBtn = document.getElementById("toggle-spin-btn");
+const toggleHudBtn = document.getElementById("toggle-hud-btn");
 const resetCameraBtn = document.getElementById("reset-camera-btn");
 
 let heroController: HeroSceneController | null = null;
 let isSpinning = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let isHudVisible = true;
 
 function syncSpinButtonUI() {
   if (!toggleSpinBtn) return;
@@ -661,13 +830,12 @@ function syncSpinButtonUI() {
 syncSpinButtonUI();
 
 if (canvasHost) {
-  void mountHeroPixi3D(
-    canvasHost,
-    (label) => {
+  void mountHeroPixi3D(canvasHost, {
+    onReady(label) {
       canvasSkeleton?.remove();
       if (rendererLabel) rendererLabel.textContent = `${label} 运行中`;
     },
-    (errorMsg) => {
+    onError(errorMsg) {
       if (rendererLabel) rendererLabel.textContent = "渲染不可用";
       if (rendererDot) {
         rendererDot.classList.remove("bg-[#4ade80]");
@@ -682,7 +850,13 @@ if (canvasHost) {
         `;
       }
     },
-  ).then((ctrl) => {
+    onMeshTap(count) {
+      if (meshTapBadge) {
+        meshTapBadge.textContent = `3D 指针事件 · 点击 ${count} 次`;
+        meshTapBadge.classList.add("border-[#E72264]", "text-white");
+      }
+    },
+  }).then((ctrl) => {
     heroController = ctrl;
   });
 }
@@ -693,8 +867,48 @@ toggleSpinBtn?.addEventListener("click", () => {
   syncSpinButtonUI();
 });
 
+toggleHudBtn?.addEventListener("click", () => {
+  isHudVisible = !isHudVisible;
+  heroController?.setHudVisible(isHudVisible);
+  toggleHudBtn.setAttribute("aria-pressed", String(isHudVisible));
+  toggleHudBtn.classList.toggle("bg-[#272727]", isHudVisible);
+  toggleHudBtn.classList.toggle("text-white", isHudVisible);
+  toggleHudBtn.classList.toggle("bg-[#181818]", !isHudVisible);
+  toggleHudBtn.classList.toggle("text-[#A3A3A3]", !isHudVisible);
+});
+
 resetCameraBtn?.addEventListener("click", () => {
   heroController?.resetCamera();
+});
+
+document.querySelectorAll<HTMLButtonElement>("[data-hero-geom]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const geom = btn.dataset.heroGeom as HeroGeometryKind;
+    heroController?.setGeometry(geom);
+    document.querySelectorAll<HTMLButtonElement>("[data-hero-geom]").forEach((other) => {
+      const active = other === btn;
+      other.setAttribute("aria-pressed", String(active));
+      other.classList.toggle("bg-[#E72264]", active);
+      other.classList.toggle("text-white", active);
+      other.classList.toggle("bg-[#272727]", !active);
+      other.classList.toggle("text-[#A3A3A3]", !active);
+    });
+  });
+});
+
+document.querySelectorAll<HTMLButtonElement>("[data-hero-mat]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const mat = btn.dataset.heroMat as HeroMaterialKind;
+    heroController?.setMaterial(mat);
+    document.querySelectorAll<HTMLButtonElement>("[data-hero-mat]").forEach((other) => {
+      const active = other === btn;
+      other.setAttribute("aria-pressed", String(active));
+      other.classList.toggle("bg-[#313131]", active);
+      other.classList.toggle("text-white", active);
+      other.classList.toggle("bg-[#181818]", !active);
+      other.classList.toggle("text-[#A3A3A3]", !active);
+    });
+  });
 });
 
 document.querySelectorAll<HTMLButtonElement>("[data-cube-color]").forEach((btn) => {
@@ -734,7 +948,7 @@ pmTabs.forEach((tab) => {
   });
 });
 
-// Copy to clipboard with inline status confirmation
+// Copy to clipboard with inline status confirmation (reads rawCode so line numbers are excluded)
 const liveRegion = document.getElementById("copy-live-region");
 
 document.querySelectorAll<HTMLButtonElement>("[data-copy-target]").forEach((btn) => {
@@ -744,7 +958,7 @@ document.querySelectorAll<HTMLButtonElement>("[data-copy-target]").forEach((btn)
   btn.addEventListener("click", async () => {
     const targetId = btn.dataset.copyTarget;
     const targetEl = targetId ? document.getElementById(targetId) : null;
-    const text = targetEl?.textContent ?? "";
+    const text = targetEl?.dataset.rawCode ?? targetEl?.textContent ?? "";
     if (!text) return;
 
     try {
@@ -779,8 +993,8 @@ function setMobileMenu(open: boolean) {
     requestAnimationFrame(() => {
       mobilePanel.classList.add("mobile-menu-open");
     });
-    burgerLine1?.style.setProperty("transform", "translateY(4px) rotate(45deg)");
-    burgerLine2?.style.setProperty("transform", "translateY(-4px) rotate(-45deg)");
+    burgerLine1?.style.setProperty("transform", "translateY(3px) rotate(45deg)");
+    burgerLine2?.style.setProperty("transform", "translateY(-3px) rotate(-45deg)");
   } else {
     mobilePanel.classList.remove("mobile-menu-open");
     mobilePanel.hidden = true;
@@ -834,7 +1048,9 @@ const activeNavObserver = new IntersectionObserver(
   { rootMargin: "-35% 0px -55% 0px" },
 );
 
-document.querySelectorAll<HTMLElement>("main section[id]").forEach((sec) => activeNavObserver.observe(sec));
+document
+  .querySelectorAll<HTMLElement>("main section[id]")
+  .forEach((sec) => activeNavObserver.observe(sec));
 
 // Mandatory Tagline Word-by-Word Reveal (B11)
 const taglineSection = document.getElementById("tagline-reveal");

@@ -223,3 +223,35 @@ dialog.legal-dialog::backdrop {
   background-color: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(6px);
 }
+
+/* Line-numbered syntax-highlighted code lines */
+.code-line {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition:
+    opacity 250ms var(--ease-out-quint),
+    background-color 250ms var(--ease-out-quint);
+}
+
+.code-line.is-highlighted {
+  background-color: rgba(231, 34, 100, 0.14);
+}
+
+.code-line.is-dimmed {
+  opacity: 0.35;
+}
+
+.code-ln {
+  flex-shrink: 0;
+  width: 2ch;
+  text-align: right;
+  color: #525252;
+  user-select: none;
+}
+
+.code-content {
+  white-space: pre;
+}

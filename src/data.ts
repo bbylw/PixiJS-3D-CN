@@ -20,6 +20,7 @@ export interface StepItem {
   title: string;
   description: string;
   api: string;
+  lines: readonly [number, number];
 }
 
 export interface FaqItem {
@@ -32,56 +33,64 @@ export const FEATURES: FeatureItem[] = [
     id: "renderers",
     icon: "rocket",
     title: "WebGL2 与 WebGPU 双渲染器",
-    description: "优先启用现代 WebGPU 管线，并在不支持的环境中平滑回退至 WebGL2，兼顾前沿性能与广泛兼容。",
+    description:
+      "优先启用现代 WebGPU 管线，并在不支持的环境中平滑回退至 WebGL2，兼顾前沿性能与广泛兼容。",
     tag: "双引擎",
   },
   {
     id: "view3d",
     icon: "puzzle",
     title: "像精灵一样添加 3D 视图",
-    description: "通过 View3D 实例直接挂载到 PixiJS 舞台（app.stage），与现有 2D 精灵、文本及 UI 层级自然融合。",
+    description:
+      "通过 View3D 实例直接挂载到 PixiJS 舞台（app.stage），与现有 2D 精灵、文本及 UI 层级自然融合。",
     tag: "View3D",
   },
   {
     id: "gltf",
     icon: "package",
     title: "glTF 模型与几何压缩",
-    description: "原生支持加载 glTF 资产，内置 Draco 几何压缩与 meshopt 网格优化解码，大幅缩减模型加载体积。",
+    description:
+      "原生支持加载 glTF 资产，内置 Draco 几何压缩与 meshopt 网格优化解码，大幅缩减模型加载体积。",
     tag: "Draco / meshopt",
   },
   {
     id: "materials",
     icon: "palette",
     title: "PBR、Phong 与卡通材质",
-    description: "提供基于物理的 PBR 材质、经典 Phong 光照模型与风格化 Toon 卡通材质，满足写实与二次元渲染需求。",
+    description:
+      "提供基于物理的 PBR 材质、经典 Phong 光照模型与风格化 Toon 卡通材质，满足写实与二次元渲染需求。",
     tag: "材质系统",
   },
   {
     id: "lights",
     icon: "sun",
     title: "光照系统与实时阴影",
-    description: "内置方向光等光源与阴影投射管线，搭配天空色与地面色环境光照，快速构建层次分明的立体空间。",
+    description:
+      "内置方向光等光源与阴影投射管线，搭配天空色与地面色环境光照，快速构建层次分明的立体空间。",
     tag: "光影",
   },
   {
     id: "animation",
     icon: "personRun",
     title: "骨骼蒙皮与变形目标动画",
-    description: "完整支持 Skinned 骨骼动画与 Morph Target 变形目标动画，轻松驱动角色动作与精细面部表情。",
+    description:
+      "完整支持 Skinned 骨骼动画与 Morph Target 变形目标动画，轻松驱动角色动作与精细面部表情。",
     tag: "动画",
   },
   {
     id: "particles",
     icon: "sparkle",
     title: "3D 粒子系统",
-    description: "在三维场景中高效生成并渲染火焰、烟雾、星尘等粒子效果，为游戏与交互作品增添立体动感。",
+    description:
+      "在三维场景中高效生成并渲染火焰、烟雾、星尘等粒子效果，为游戏与交互作品增添立体动感。",
     tag: "粒子",
   },
   {
     id: "postprocess",
     icon: "magicWand",
     title: "泛光与环境光遮蔽后处理",
-    description: "内置 Bloom 泛光与 Ambient Occlusion 环境光遮蔽等屏幕后处理特效，进一步提升画面质感。",
+    description:
+      "内置 Bloom 泛光与 Ambient Occlusion 环境光遮蔽等屏幕后处理特效，进一步提升画面质感。",
     tag: "后处理",
   },
   {
@@ -99,18 +108,23 @@ export const HOW_IT_WORKS: StepItem[] = [
     title: "初始化 PixiJS 应用",
     description: "创建 Application 实例并设置 preference 为 webgpu，将画布挂载至页面容器。",
     api: "new Application()",
+    lines: [6, 10],
   },
   {
     step: "02",
     title: "创建并挂载 View3D",
-    description: "实例化 View3D 并配置天空与地面环境光，像添加普通 2D 精灵一样调用 app.stage.addChild(view3d)。",
+    description:
+      "实例化 View3D 并配置天空与地面环境光，像添加普通 2D 精灵一样调用 app.stage.addChild(view3d)。",
     api: "app.stage.addChild(view3d)",
+    lines: [12, 15],
   },
   {
     step: "03",
     title: "组装网格、光源与相机",
-    description: "将 Mesh3D 与 DirectionalLight 加入 view3d.root，绑定 OrbitCamera 并在 ticker 中更新旋转。",
+    description:
+      "将 Mesh3D 与 DirectionalLight 加入 view3d.root，绑定 OrbitCamera 并在 ticker 中更新旋转。",
     api: "view3d.root.addChild(cube, sun)",
+    lines: [17, 32],
   },
 ];
 
@@ -148,6 +162,64 @@ import { Application } from 'pixi.js';
   });
 })();`;
 
+export const USAGE_HYBRID_CODE = `import { DirectionalLight, Mesh3D, PlaneGeometry, TorusKnotGeometry, Vector3, View3D } from '@pixi/3d';
+import { OrbitCamera, ToonMaterial } from '@pixi/3d/extras';
+import { Application, Point, Text } from 'pixi.js';
+
+(async () => {
+  const app = new Application();
+  await app.init({ preference: 'webgpu', background: '#131209', resizeTo: window, antialias: true });
+  document.body.appendChild(app.canvas);
+
+  // 开启中档阴影质量与 ACES 电影级色调映射
+  const view3d = new View3D({
+    autoResize: true,
+    shadowQuality: 'medium',
+    toneMapping: 'aces',
+    environment: { skyColor: 0xc9d6ff, groundColor: 0x3a2f45, intensity: 0.7 },
+  });
+  app.stage.addChild(view3d);
+
+  // 投射阴影的方向光与承接阴影的地面
+  const sun = new DirectionalLight({ intensity: 3, castShadow: true });
+  sun.position.set(-3, 5, 3);
+  sun.lookAt({ x: 0, y: 0, z: 0 });
+
+  const floor = new Mesh3D({
+    geometry: new PlaneGeometry({ width: 14, height: 14 }),
+    rotation: { x: -Math.PI / 2, y: 0, z: 0 },
+    position: { x: 0, y: -1.4, z: 0 },
+    castShadow: false,
+    receiveShadow: true,
+  });
+
+  // 使用 ToonMaterial 并开启 3D 指针点击事件
+  const knot = new Mesh3D({
+    geometry: new TorusKnotGeometry({ radius: 0.85, tube: 0.28, tubularSegments: 120, radialSegments: 16 }),
+    material: new ToonMaterial({ baseColor: 0xe72264, bands: 3, rimIntensity: 0.45 }),
+    castShadow: true,
+    eventMode: 'static',
+    cursor: 'pointer',
+  });
+  view3d.root.addChild(sun, floor, knot);
+
+  // 在 2D 舞台叠加标签，并实时投影跟随 3D 物体坐标
+  const hudLabel = new Text({ text: 'View3D · 2D 锚点', style: { fill: 0xffffff, fontSize: 13 } });
+  hudLabel.anchor.set(0.5, 1);
+  app.stage.addChild(hudLabel);
+
+  new OrbitCamera({ view: view3d, enableDamping: true });
+  const anchor3D = new Vector3(0, 1.35, 0);
+  const screenPt = new Point();
+
+  app.ticker.add((time) => {
+    knot.rotation.y += 0.01 * time.deltaTime;
+    const p = view3d.worldToScreen(anchor3D, screenPt);
+    hudLabel.visible = p !== null;
+    if (p) hudLabel.position.copyFrom(p);
+  });
+})();`;
+
 export const TSCONFIG_CODE = `{
   "compilerOptions": {
     "lib": ["esnext"],
@@ -160,7 +232,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: "@pixi/3d 对 pixi.js 的版本有什么最低要求？",
     answer:
-      "@pixi/3d 需要搭配 pixi.js 8.23.0 及以上版本使用。如果你是新建项目，推荐直接使用 create-pixi CLI 工具一键初始化完整依赖。",
+      "@pixi/3d 需要搭配 pixi.js 8.23.0 及以上版本使用。如果你是新建项目，推荐直接使用 PixiJS Create CLI 工具一键初始化完整依赖。",
   },
   {
     question: "它只支持 WebGPU 吗？旧版浏览器或设备能否运行？",
@@ -175,7 +247,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: "View3D 可以和普通的 2D Sprite、Text 或粒子层混合排版吗？",
     answer:
-      "可以。View3D 本身就是一个可加入 PixiJS 舞台（app.stage）的显示对象，你可以像管理普通 2D 精灵一样调整它的层级顺序，在 3D 场景上方叠加 2D 血条、HUD 界面或背景图层。",
+      "可以。View3D 本身就是一个可加入 PixiJS 舞台（app.stage）的显示对象，你可以像管理普通 2D 精灵一样调整它的层级顺序，并配合 view3d.worldToScreen 在 3D 物体上方叠加 2D 血条、标签或 HUD 界面。",
   },
   {
     question: "支持哪些 3D 模型格式与材质类型？",
@@ -185,7 +257,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: "PixiJS 3D 采用什么开源协议？如何参与贡献或赞助？",
     answer:
-      "PixiJS 3D 基于 MIT License 开源发布。你可以阅读仓库中的 Contributing Guide 提交 PR 或反馈问题，也可以通过 Open Collective 与 PixiJS Sponsors 页面赞助核心团队。",
+      "PixiJS 3D 基于 MIT License 开源发布。你可以阅读仓库中的贡献指南提交 PR 或反馈问题，也可以通过 Open Collective 与 PixiJS Sponsors 页面赞助核心团队。",
   },
 ];
 
@@ -206,4 +278,3 @@ export const SETUP_COMMANDS = {
     types: "pnpm add -D @types/web",
   },
 } as const;
-
