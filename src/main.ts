@@ -581,14 +581,9 @@ appRoot.innerHTML = `
   <!-- Footer -->
   <footer class="border-t border-[#272727] bg-[#000000]">
     <div class="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-4 py-10 sm:flex-row sm:items-center md:px-8">
-      <div>
-        <div class="flex items-center gap-2 text-sm font-semibold text-white">
-          <span class="text-[#E72264]">${icons.cube}</span>
-          <span>PixiJS 3D 中文站</span>
-        </div>
-        <p class="mt-1 text-xs text-[#A3A3A3]">
-          基于 <a href="https://github.com/pixijs/3d/blob/main/README.md" target="_blank" rel="noopener noreferrer" class="underline decoration-[#313131] underline-offset-4 hover:text-white">pixijs/3d README.md</a> 构建 · MIT License · Vite+ 1.6.0 + Bun 1.4.4
-        </p>
+      <div class="flex items-center gap-2 text-sm font-semibold text-white">
+        <span class="text-[#E72264]">${icons.cube}</span>
+        <span>PixiJS 3D</span>
       </div>
 
       <div class="flex flex-wrap items-center gap-4 text-xs text-[#A3A3A3]">
