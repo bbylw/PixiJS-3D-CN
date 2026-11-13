@@ -1,0 +1,34 @@
+{
+  "name": "less-factory",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "tsc && vp build",
+    "preview": "vp preview"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/web": "^0.0.366",
+    "daisyui": "^5.7.50",
+    "tailwindcss": "^4.3.5",
+    "typescript": "~7.0.2",
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
+    "vite-plus": "1.6.0"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "bun",
+      "version": "1.4.4",
+      "onFail": "download"
+    }
+  },
+  "dependencies": {
+    "@pixi/3d": "^0.1.0",
+    "pixi.js": "^8.23.0"
+  }
+}
